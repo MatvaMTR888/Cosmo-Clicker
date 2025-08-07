@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Clicker Adventure</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @keyframes clickEffect {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        .click-animation {
+            animation: clickEffect 0.3s ease-out;
+        }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .upgrade-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        .upgrade-card {
+            transition: all 0.3s ease;
+        }
+        .particle {
+            position: absolute;
+            background-color: rgba(255, 255, 255, 0.7);
+            border-radius: 50%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white min-h-screen flex flex-col">
+    <header class="bg-gray-800 py-4 px-6 shadow-lg">
+        <div class="container mx-auto flex justify-between items-center">
+            <h1 class="text-2xl md:text-3xl font-bold text-purple-400 flex items-center">
+                <i class="fas fa-rocket mr-2"></i> Space Clicker
+            </h1>
+            <div class="flex items-center space-x-4">
+                <div class="hidden md:block bg-gray-700 px-4 py-2 rounded-lg">
+                    <span id="cps-counter" class="text-yellow-300">0</span> clicks per second
+                </div>
+                <button id="save-btn" class="bg-green-600 hover:bg-green-700 px-3 py-1 rounded-lg transition">
+                    <i class="fas fa-save"></i> Save
+                </button>
+                <button id="reset-btn" class="bg-red-600 hover:bg-red-700 px-3 py-1 rounded-lg transition">
+                    <i class="fas fa-trash"></i> Reset
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-grow container mx-auto px-4 py-8 flex flex-col items-center">
+        <div class="w-full max-w-4xl bg-gray-800 rounded-xl p-6 shadow-xl mb-8">
+            <div class="flex flex-col md:flex-row items-center justify-between">
+                <div class="text-center md:text-left mb-6 md:mb-0">
+                    <h2 class="text-xl font-semibold text-purple-300 mb-2">Your Galactic Empire</h2>
+                    <div class="text-4xl md:text-5xl font-bold text-yellow-300" id="score">0</div>
+                    <div class="text-gray-400 mt-1">space credits</div>
+                </div>
+                
+                <div id="click-area" class="relative cursor-pointer select-none">
+                    <div class="w-48 h-48 md:w-64 md:h-64 bg-purple-900 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all duration-200 border-4 border-purple-700 overflow-hidden">
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div id="click-target" class="w-40 h-40 md:w-56 md:h-56 bg-purple-800 rounded-full flex items-center justify-center text-4xl md:text-5xl text-white floating">
+                                <i class="fas fa-meteor"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="click-feedback" class="absolute top-0 left-0 w-full h-full pointer-events-none"></div>
+                </div>
+                
+                <div class="text-center md:text-right mt-6 md:mt-0">
+                    <h2 class="text-xl font-semibold text-purple-300 mb-2">Production</h2>
+                    <div class="text-3xl font-bold text-green-400" id="passive-income">0</div>
+                    <div class="text-gray-400 mt-1">credits/second</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="w-full max-w-4xl">
+            <h2 class="text-2xl font-bold mb-4 text-purple-300 flex items-center">
+                <i class="fas fa-cogs mr-2"></i> Upgrades
+            </h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Upgrade 1 -->
+                <div class="upgrade-card bg-gray-800 rounded-lg p-4 border-l-4 border-blue-500">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-lg font-semibold">Auto-Clicker</h3>
+                        <span class="text-yellow-300 font-bold" id="upgrade-1-count">0</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-3">Basic automatic clicking drone</p>
+                    <div class="flex justify-between items-center">
+                        <button class="upgrade-btn bg-blue-600 hover:bg-blue-700 px-3 py-1 rounded transition" data-upgrade="1">
+                            Buy (<span class="upgrade-cost" data-upgrade="1">10</span>)
+                        </button>
+                        <div class="text-green-400 text-sm">
+                            +<span class="upgrade-value" data-upgrade="1">0.1</span>/s
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upgrade 2 -->
+                <div class="upgrade-card bg-gray-800 rounded-lg p-4 border-l-4 border-green-500">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-lg font-semibold">Quantum Core</h3>
+                        <span class="text-yellow-300 font-bold" id="upgrade-2-count">0</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-3">Advanced energy generation</p>
+                    <div class="flex justify-between items-center">
+                        <button class="upgrade-btn bg-green-600 hover:bg-green-700 px-3 py-1 rounded transition" data-upgrade="2">
+                            Buy (<span class="upgrade-cost" data-upgrade="2">100</span>)
+                        </button>
+                        <div class="text-green-400 text-sm">
+                            +<span class="upgrade-value" data-upgrade="2">1</span>/s
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upgrade 3 -->
+                <div class="upgrade-card bg-gray-800 rounded-lg p-4 border-l-4 border-purple-500">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-lg font-semibold">Dyson Sphere</h3>
+                        <span class="text-yellow-300 font-bold" id="upgrade-3-count">0</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-3">Harness a star's power</p>
+                    <div class="flex justify-between items-center">
+                        <button class="upgrade-btn bg-purple-600 hover:bg-purple-700 px-3 py-1 rounded transition" data-upgrade="3">
+                            Buy (<span class="upgrade-cost" data-upgrade="3">1000</span>)
+                        </button>
+                        <div class="text-green-400 text-sm">
+                            +<span class="upgrade-value" data-upgrade="3">10</span>/s
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upgrade 4 -->
+                <div class="upgrade-card bg-gray-800 rounded-lg p-4 border-l-4 border-red-500">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-lg font-semibold">Black Hole</h3>
+                        <span class="text-yellow-300 font-bold" id="upgrade-4-count">0</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-3">Infinite energy source</p>
+                    <div class="flex justify-between items-center">
+                        <button class="upgrade-btn bg-red-600 hover:bg-red-700 px-3 py-1 rounded transition" data-upgrade="4">
+                            Buy (<span class="upgrade-cost" data-upgrade="4">10000</span>)
+                        </button>
+                        <div class="text-green-400 text-sm">
+                            +<span class="upgrade-value" data-upgrade="4">50</span>/s
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upgrade 5 -->
+                <div class="upgrade-card bg-gray-800 rounded-lg p-4 border-l-4 border-yellow-500">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-lg font-semibold">Galactic Network</h3>
+                        <span class="text-yellow-300 font-bold" id="upgrade-5-count">0</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-3">Connect entire galaxies</p>
+                    <div class="flex justify-between items-center">
+                        <button class="upgrade-btn bg-yellow-600 hover:bg-yellow-700 px-3 py-1 rounded transition" data-upgrade="5">
+                            Buy (<span class="upgrade-cost" data-upgrade="5">50000</span>)
+                        </button>
+                        <div class="text-green-400 text-sm">
+                            +<span class="upgrade-value" data-upgrade="5">100</span>/s
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Upgrade 6 -->
+                <div class="upgrade-card bg-gray-800 rounded-lg p-4 border-l-4 border-pink-500">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="text-lg font-semibold">Reality Engine</h3>
+                        <span class="text-yellow-300 font-bold" id="upgrade-6-count">0</span>
+                    </div>
+                    <p class="text-gray-400 text-sm mb-3">Manipulate the fabric of space-time</p>
+                    <div class="flex justify-between items-center">
+                        <button class="upgrade-btn bg-pink-600 hover:bg-pink-700 px-3 py-1 rounded transition" data-upgrade="6">
+                            Buy (<span class="upgrade-cost" data-upgrade="6">250000</span>)
+                        </button>
+                        <div class="text-green-400 text-sm">
+                            +<span class="upgrade-value" data-upgrade="6">500</span>/s
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="bg-gray-800 py-4 px-6 mt-8">
+        <div class="container mx-auto text-center text-gray-400">
+            <p>Space Clicker Adventure &copy; 2023 | Click to conquer the universe!</p>
+        </div>
+    </footer>
+
+    <div id="notification" class="fixed top-4 right-4 bg-green-600 text-white px-4 py-2 rounded-lg shadow-lg transform translate-x-full transition-transform duration-300">
+        Game saved successfully!
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            score: 0,
+            passiveIncome: 0,
+            cps: 0,
+            clickPower: 1,
+            upgrades: {
+                1: { count: 0, cost: 10, value: 0.1 },
+                2: { count: 0, cost: 100, value: 1 },
+                3: { count: 0, cost: 1000, value: 10 },
+                4: { count: 0, cost: 10000, value: 50 },
+                5: { count: 0, cost: 50000, value: 100 },
+                6: { count: 0, cost: 250000, value: 500 }
+            },
+            lastClickTime: 0,
+            clickTimes: []
+        };
+
+        // DOM elements
+        const scoreElement = document.getElementById('score');
+        const passiveIncomeElement = document.getElementById('passive-income');
+        const cpsCounter = document.getElementById('cps-counter');
+        const clickTarget = document.getElementById('click-target');
+        const clickFeedback = document.getElementById('click-feedback');
+        const clickArea = document.getElementById('click-area');
+        const saveBtn = document.getElementById('save-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const notification = document.getElementById('notification');
+
+        // Initialize the game
+        function initGame() {
+            loadGame();
+            updateUI();
+            startGameLoop();
+            setupEventListeners();
+        }
+
+        // Load game from localStorage
+        function loadGame() {
+            const savedGame = localStorage.getItem('spaceClickerSave');
+            if (savedGame) {
+                const parsed = JSON.parse(savedGame);
+                Object.assign(gameState, parsed);
+                showNotification('Game loaded successfully!');
+            }
+        }
+
+        // Save game to localStorage
+        function saveGame() {
+            localStorage.setItem('spaceClickerSave', JSON.stringify(gameState));
+            showNotification('Game saved successfully!');
+        }
+
+        // Reset game
+        function resetGame() {
+            if (confirm('Are you sure you want to reset your progress? This cannot be undone!')) {
+                localStorage.removeItem('spaceClickerSave');
+                Object.assign(gameState, {
+                    score: 0,
+                    passiveIncome: 0,
+                    cps: 0,
+                    clickPower: 1,
+                    upgrades: {
+                        1: { count: 0, cost: 10, value: 0.1 },
+                        2: { count: 0, cost: 100, value: 1 },
+                        3: { count: 0, cost: 1000, value: 10 },
+                        4: { count: 0, cost: 10000, value: 50 },
+                        5: { count: 0, cost: 50000, value: 100 },
+                        6: { count: 0, cost: 250000, value: 500 }
+                    },
+                    lastClickTime: 0,
+                    clickTimes: []
+                });
+                updateUI();
+                showNotification('Game reset successfully!');
+            }
+        }
+
+        // Show notification
+        function showNotification(message) {
+            notification.textContent = message;
+            notification.classList.remove('translate-x-full');
+            setTimeout(() => {
+                notification.classList.add('translate-x-full');
+            }, 3000);
+        }
+
+        // Game loop
+        function startGameLoop() {
+            setInterval(() => {
+                // Passive income
+                gameState.score += gameState.passiveIncome / 10;
+                
+                // Update UI
+                updateUI();
+            }, 100);
+        }
+
+        // Update UI
+        function updateUI() {
+            // Format numbers
+            scoreElement.textContent = formatNumber(gameState.score);
+            passiveIncomeElement.textContent = formatNumber(gameState.passiveIncome);
+            cpsCounter.textContent = gameState.cps.toFixed(1);
+            
+            // Update upgrade buttons
+            for (const [id, upgrade] of Object.entries(gameState.upgrades)) {
+                document.getElementById(`upgrade-${id}-count`).textContent = upgrade.count;
+                document.querySelector(`.upgrade-cost[data-upgrade="${id}"]`).textContent = formatNumber(upgrade.cost);
+                document.querySelector(`.upgrade-value[data-upgrade="${id}"]`).textContent = formatNumber(upgrade.value);
+                
+                // Disable buttons if can't afford
+                const buttons = document.querySelectorAll(`.upgrade-btn[data-upgrade="${id}"]`);
+                buttons.forEach(btn => {
+                    btn.disabled = gameState.score < upgrade.cost;
+                    btn.classList.toggle('opacity-50', gameState.score < upgrade.cost);
+                    btn.classList.toggle('cursor-not-allowed', gameState.score < upgrade.cost);
+                });
+            }
+        }
+
+        // Format number for display
+        function formatNumber(num) {
+            if (num >= 1000000) {
+                return (num / 1000000).toFixed(1) + 'M';
+            }
+            if (num >= 1000) {
+                return (num / 1000).toFixed(1) + 'K';
+            }
+            return num.toFixed(1);
+        }
+
+        // Handle click
+        function handleClick(e) {
+            // Add score
+            gameState.score += gameState.clickPower;
+            
+            // Track click time for CPS calculation
+            const now = Date.now();
+            gameState.clickTimes.push(now);
+            gameState.clickTimes = gameState.clickTimes.filter(time => now - time < 1000);
+            gameState.cps = gameState.clickTimes.length;
+            
+            // Animation
+            clickTarget.classList.add('click-animation');
+            setTimeout(() => {
+                clickTarget.classList.remove('click-animation');
+            }, 300);
+            
+            // Create click effect
+            createClickEffect(e);
+            
+            // Update UI
+            updateUI();
+        }
+
+        // Create click effect
+        function createClickEffect(e) {
+            const rect = clickArea.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            // Create particles
+            for (let i = 0; i < 5; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                const size = Math.random() * 10 + 5;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${x}px`;
+                particle.style.top = `${y}px`;
+                particle.style.backgroundColor = `hsl(${Math.random() * 60 + 200}, 100%, 70%)`;
+                
+                clickFeedback.appendChild(particle);
+                
+                // Animate particle
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = Math.random() * 3 + 2;
+                const distance = Math.random() * 50 + 30;
+                
+                let posX = x;
+                let posY = y;
+                let opacity = 1;
+                
+                const animate = () => {
+                    posX += Math.cos(angle) * velocity;
+                    posY += Math.sin(angle) * velocity;
+                    opacity -= 0.02;
+                    
+                    particle.style.left = `${posX}px`;
+                    particle.style.top = `${posY}px`;
+                    particle.style.opacity = opacity;
+                    
+                    if (opacity > 0) {
+                        requestAnimationFrame(animate);
+                    } else {
+                        particle.remove();
+                    }
+                };
+                
+                requestAnimationFrame(animate);
+            }
+            
+            // Create +1 text
+            const plusText = document.createElement('div');
+            plusText.className = 'particle text-xl font-bold text-yellow-300';
+            plusText.textContent = `+${gameState.clickPower}`;
+            plusText.style.left = `${x}px`;
+            plusText.style.top = `${y}px`;
+            
+            clickFeedback.appendChild(plusText);
+            
+            // Animate +1 text
+            let posY = y;
+            let opacity = 1;
+            
+            const animateText = () => {
+                posY -= 1;
+                opacity -= 0.01;
+                
+                plusText.style.top = `${posY}px`;
+                plusText.style.opacity = opacity;
+                
+                if (opacity > 0) {
+                    requestAnimationFrame(animateText);
+                } else {
+                    plusText.remove();
+                }
+            };
+            
+            requestAnimationFrame(animateText);
+        }
+
+        // Buy upgrade
+        function buyUpgrade(upgradeId) {
+            const upgrade = gameState.upgrades[upgradeId];
+            
+            if (gameState.score >= upgrade.cost) {
+                gameState.score -= upgrade.cost;
+                upgrade.count++;
+                gameState.passiveIncome += upgrade.value;
+                
+                // Increase cost
+                upgrade.cost = Math.floor(upgrade.cost * 1.15);
+                
+                // Update UI
+                updateUI();
+                
+                // Play sound effect (would need audio file)
+                // new Audio('upgrade.wav').play();
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Click event
+            clickArea.addEventListener('click', handleClick);
+            
+            // Upgrade buttons
+            document.querySelectorAll('.upgrade-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const upgradeId = btn.dataset.upgrade;
+                    buyUpgrade(upgradeId);
+                });
+            });
+            
+            // Save button
+            saveBtn.addEventListener('click', saveGame);
+            
+            // Reset button
+            resetBtn.addEventListener('click', resetGame);
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.code === 'Space') {
+                    // Simulate click when spacebar is pressed
+                    const event = new MouseEvent('click', {
+                        view: window,
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    clickArea.dispatchEvent(event);
+                }
+            });
+        }
+
+        // Initialize the game when DOM is loaded
+        document.addEventListener('DOMContentLoaded', initGame);
+    </script>
+</body>
+</html>
